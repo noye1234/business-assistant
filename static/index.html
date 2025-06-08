@@ -49,6 +49,14 @@
     button:hover {
       background: #45a049;
     }
+    #download-btn {
+      display: none;
+      margin-top: 10px;
+      background: #2196F3;
+    }
+    #download-btn:hover {
+      background: #1976D2;
+    }
   </style>
 </head>
 <body>
@@ -68,20 +76,21 @@
       <label><input type="checkbox" name="features" value="אזור בישול/טיגון פעיל"> אזור בישול/טיגון פעיל</label>
       <label><input type="checkbox" name="features" value="אחר"> אחר (פרט למטה)</label>
     </div>
+
     <label>האם יש מערכות שרברבות וניקיון?</label>
     <div class="radio-group">
       <label><input type="radio" name="features" value="מערכות שרברבות וניקיון"> כן</label>
       <label><input type="radio" name="features" value="לא"> לא</label>
       <label><input type="radio" name="features" value="מערכות שרברבות וניקיון"> לא יודע</label>
     </div>
+
     <label for="other">פרטים נוספים (רשות):</label>
     <textarea id="other" name="other" rows="3" placeholder="כתוב כאן..."></textarea>
 
-
-
-
     <button type="submit">שלח</button>
   </form>
+
+  <button id="download-btn">הורד את הדוח</button>
 
   <h2>תוצאות הדרישות המתאימות:</h2>
   <ul id="results-list"></ul>
@@ -89,25 +98,18 @@
   <script>
     const form = document.getElementById('business-form');
     const resultsList = document.getElementById('results-list');
+    const downloadBtn = document.getElementById('download-btn');
 
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
 
-      // קבלת ערכי השדות
-      const size = parseInt(document.getElementById('size').value);
-      const seats = parseInt(document.getElementById('seats').value);
-
-      // קבלת מאפיינים מסומנים (רשימה)
+      const size = parseInt(document.getElementById('size').value) || null;
+      const seats = parseInt(document.getElementById('seats').value) || null;
       const featureCheckboxes = document.querySelectorAll('input[name="features"]:checked');
       const features = Array.from(featureCheckboxes).map(cb => cb.value);
+      const other = document.getElementById('other').value || '';
 
-      const other = document.getElementById('other').value;
-
-      const fireSafety = document.querySelector('input[name="fire-safety"]:checked')?.value || '';
-      const documents = document.querySelector('input[name="documents"]:checked')?.value || '';
-
-      // הכנת הנתונים לשליחה
-      const data = { size, seats, features, other, fireSafety, documents };
+      const data = { size, seats, features, other };
 
       try {
         const response = await fetch('/match-requirements', {
@@ -123,23 +125,30 @@
 
         const result = await response.json();
 
-        // ניקוי תוצאות קודמות
         resultsList.innerHTML = '';
+        downloadBtn.style.display = 'none';
 
         if (result.matched_requirements.length === 0) {
           resultsList.innerHTML = '<li>אין דרישות מתאימות.</li>';
         } else {
-          // הצגת הדרישות
           result.matched_requirements.forEach(req => {
             const li = document.createElement('li');
             li.textContent = req;
             resultsList.appendChild(li);
           });
+          if (result.download_link) {
+            downloadBtn.style.display = 'inline-block';
+          }
         }
 
       } catch (err) {
         resultsList.innerHTML = `<li>אירעה שגיאה: ${err.message}</li>`;
+        downloadBtn.style.display = 'none';
       }
+    });
+
+    downloadBtn.addEventListener('click', () => {
+      window.location.href = '/download-report';
     });
   </script>
 </body>
