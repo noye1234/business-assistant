@@ -6,14 +6,18 @@ from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from openai import OpenAI
 
+# Get OpenAI API key from environment variable
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
+# Initialize Flask app
 app = Flask(__name__)
 
+# Route for serving index.html
 @app.route('/')
 def index():
     return send_file('static/index.html')
 
+# Route for matching requirements
 @app.route('/match-requirements', methods=['POST'])
 def match_requirements():
     user_data = request.get_json()
@@ -21,6 +25,7 @@ def match_requirements():
     seats = user_data.get('seats')
     features = user_data.get('features', [])
 
+    # Load rules from JSON file
     with open('output/rules.json', 'r', encoding='utf-8') as f:
         rules_data = json.load(f)
     rules = rules_data.get("rules", [])
@@ -31,6 +36,7 @@ def match_requirements():
         if not conditions_list:
             continue
 
+        # Check if any condition is met
         match = any(
             (('size_greater_than' in cond and size is not None and size > cond['size_greater_than'])
             or ('seats_greater_than' in cond and seats is not None and seats > cond['seats_greater_than'])
@@ -41,6 +47,7 @@ def match_requirements():
         if match:
             matched_requirements.append(rule.get('requirement', ''))
 
+    # Generate AI report if API key exists
     if OPENAI_API_KEY:
         client = OpenAI(api_key=OPENAI_API_KEY)
 
@@ -66,23 +73,24 @@ def match_requirements():
             report_text = response.choices[0].message.content.strip()
             return report_text
 
-    # שמירת דוח PDF
+    # Generate PDF report
     if matched_requirements:
         pdf_path = 'output/report.pdf'
         c = canvas.Canvas(pdf_path)
 
-        # רישום גופן עברי
+        # Register Hebrew font
         pdfmetrics.registerFont(TTFont('Arial', 'static/fonts/Arial.ttf'))
         c.setFont("Arial", 14)
 
-        # כיוון ימין-לשמאל – שימוש בטריק הפוך (לא מושלם, אבל עוזר)
+        # Write title (reversed for RTL workaround)
         title = "דו\"ח דרישות מותאם אישית לעסק שלך:"
-        c.drawRightString(500, 800, title[::-1])  # כותב את הטקסט הפוך לימין
+        c.drawRightString(500, 800, title[::-1])
 
+        # Write each requirement (reversed for RTL)
         y = 770
         for req in matched_requirements:
             text = f"- {req}"
-            c.drawRightString(500, y, text[::-1])  # כל דרישה הפוכה כדי להקל על ימין-לשמאל
+            c.drawRightString(500, y, text[::-1])
             y -= 20
 
         c.save()
@@ -90,11 +98,13 @@ def match_requirements():
     else:
         download_link = None
 
+    # Return matched requirements and download link as JSON
     return jsonify({
         'matched_requirements': matched_requirements,
         'download_link': download_link
     })
 
+# Route for downloading the PDF report
 @app.route('/download-report')
 def download_report():
     pdf_path = 'output/report.pdf'
@@ -102,5 +112,6 @@ def download_report():
         return send_file(pdf_path, as_attachment=True)
     return "לא נמצא דוח להורדה.", 404
 
+# Run Flask app
 if __name__ == '__main__':
     app.run(debug=True)

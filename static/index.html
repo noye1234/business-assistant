@@ -4,13 +4,14 @@
   <meta charset="UTF-8">
   <title>שאלון רישוי עסקים</title>
   <style>
+    /* Basic styling for form and page */
     body {
       font-family: Arial, sans-serif;
       background: #f9f9f9;
       padding: 20px;
       max-width: 600px;
       margin: auto;
-      direction: rtl;
+      direction: rtl; /* Right-to-left for Hebrew */
     }
     h1, h2 {
       text-align: center;
@@ -50,7 +51,7 @@
       background: #45a049;
     }
     #download-btn {
-      display: none;
+      display: none; /* Hide download button initially */
       margin-top: 10px;
       background: #2196F3;
     }
@@ -62,6 +63,7 @@
 <body>
   <h1>שאלון רישוי עסקים</h1>
 
+  <!-- Business form -->
   <form id="business-form">
     <label for="size">:גודל העסק (במ"ר)</label>
     <input type="number" id="size" required>
@@ -71,6 +73,7 @@
 
     <label>סמן את המאפיינים הרלוונטיים:</label>
     <div class="checkbox-group">
+      <!-- Checkbox features -->
       <label><input type="checkbox" name="features" value="שימוש בגז"> שימוש בגז</label>
       <label><input type="checkbox" name="features" value="הגשת בשר"> הגשת בשר</label>
       <label><input type="checkbox" name="features" value="אזור בישול/טיגון פעיל"> אזור בישול/טיגון פעיל</label>
@@ -79,6 +82,7 @@
 
     <label>האם יש מערכות שרברבות וניקיון?</label>
     <div class="radio-group">
+      <!-- Radio button features -->
       <label><input type="radio" name="features" value="מערכות שרברבות וניקיון"> כן</label>
       <label><input type="radio" name="features" value="לא"> לא</label>
       <label><input type="radio" name="features" value="מערכות שרברבות וניקיון"> לא יודע</label>
@@ -90,19 +94,24 @@
     <button type="submit">שלח</button>
   </form>
 
+  <!-- Download report button -->
   <button id="download-btn">הורד את הדוח</button>
 
+  <!-- Results section -->
   <h2>תוצאות הדרישות המתאימות:</h2>
   <ul id="results-list"></ul>
 
   <script>
+    // Get DOM elements
     const form = document.getElementById('business-form');
     const resultsList = document.getElementById('results-list');
     const downloadBtn = document.getElementById('download-btn');
 
+    // Handle form submission
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
 
+      // Collect form data
       const size = parseInt(document.getElementById('size').value) || null;
       const seats = parseInt(document.getElementById('seats').value) || null;
       const featureCheckboxes = document.querySelectorAll('input[name="features"]:checked');
@@ -112,6 +121,7 @@
       const data = { size, seats, features, other };
 
       try {
+        // Send data to server
         const response = await fetch('/match-requirements', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -120,14 +130,16 @@
 
         if (!response.ok) {
           console.error('Response status:', response.status, response.statusText);
-          throw new Error('שגיאה בשרת');
+          throw new Error('שגיאה בשרת'); // Server error message
         }
 
         const result = await response.json();
 
+        // Clear previous results
         resultsList.innerHTML = '';
         downloadBtn.style.display = 'none';
 
+        // Show matched requirements
         if (result.matched_requirements.length === 0) {
           resultsList.innerHTML = '<li>אין דרישות מתאימות.</li>';
         } else {
@@ -136,17 +148,20 @@
             li.textContent = req;
             resultsList.appendChild(li);
           });
+          // Show download button if report is available
           if (result.download_link) {
             downloadBtn.style.display = 'inline-block';
           }
         }
 
       } catch (err) {
+        // Handle errors
         resultsList.innerHTML = `<li>אירעה שגיאה: ${err.message}</li>`;
         downloadBtn.style.display = 'none';
       }
     });
 
+    // Handle download button click
     downloadBtn.addEventListener('click', () => {
       window.location.href = '/download-report';
     });
